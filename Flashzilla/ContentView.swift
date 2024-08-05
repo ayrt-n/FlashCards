@@ -15,7 +15,7 @@ extension View {
 }
 
 struct ContentView: View {
-    @State private var cards = Array<Card>(repeating: .example, count: 10)
+    @State private var cards = [Card]()
     @State private var timeRemaining = 100
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -24,6 +24,8 @@ struct ContentView: View {
     
     @Environment(\.scenePhase) var scenePhase
     @State private var isActive = true
+    
+    @State private var showingEditScreen = false
         
     var body: some View {
         ZStack {
@@ -61,44 +63,64 @@ struct ContentView: View {
                         .foregroundStyle(.black)
                         .clipShape(.capsule)
                 }
+            }
+                
+            VStack {
+                HStack {
+                    Spacer()
+                    
+                    Button {
+                        showingEditScreen = true
+                    } label: {
+                        Image(systemName: "plus.circle")
+                            .padding()
+                            .background(.black.opacity(0.7))
+                            .clipShape(.circle)
+                    }
+                    
+                }
+                Spacer()
+            }
+            .foregroundStyle(.white)
+            .font(.largeTitle)
+            .padding()
                 
                 if accessibilityDifferentiateWithoutColor || accessibilityVoiceOverEnabled {
-                    VStack {
+                VStack {
+                    Spacer()
+
+                    HStack {
+                        Button {
+                            withAnimation {
+                                removeCard(at: cards.count - 1)
+                            }
+                        } label: {
+                            Image(systemName: "xmark.circle")
+                                .padding()
+                                .background(.black.opacity(0.7))
+                                .clipShape(.circle)
+                        }
+                        .accessibilityLabel("Wrong")
+                        .accessibilityHint("Mark your answer as being incorrect.")
+
                         Spacer()
 
-                        HStack {
-                            Button {
-                                withAnimation {
-                                    removeCard(at: cards.count - 1)
-                                }
-                            } label: {
-                                Image(systemName: "xmark.circle")
-                                    .padding()
-                                    .background(.black.opacity(0.7))
-                                    .clipShape(.circle)
+                        Button {
+                            withAnimation {
+                                removeCard(at: cards.count - 1)
                             }
-                            .accessibilityLabel("Wrong")
-                            .accessibilityHint("Mark your answer as being incorrect.")
-
-                            Spacer()
-
-                            Button {
-                                withAnimation {
-                                    removeCard(at: cards.count - 1)
-                                }
-                            } label: {
-                                Image(systemName: "checkmark.circle")
-                                    .padding()
-                                    .background(.black.opacity(0.7))
-                                    .clipShape(.circle)
-                            }
-                            .accessibilityLabel("Correct")
-                            .accessibilityHint("Mark your answer as being correct.")
+                        } label: {
+                            Image(systemName: "checkmark.circle")
+                                .padding()
+                                .background(.black.opacity(0.7))
+                                .clipShape(.circle)
                         }
-                        .foregroundStyle(.white)
-                        .font(.largeTitle)
-                        .padding()
+                        .accessibilityLabel("Correct")
+                        .accessibilityHint("Mark your answer as being correct.")
                     }
+                    .foregroundStyle(.white)
+                    .font(.largeTitle)
+                    .padding()
                 }
             }
         }
@@ -118,6 +140,8 @@ struct ContentView: View {
                 isActive = false
             }
         }
+        .sheet(isPresented: $showingEditScreen, onDismiss: resetCards, content: EditCardsView.init)
+        .onAppear(perform: resetCards)
     }
     
     func removeCard(at index: Int) {
@@ -131,9 +155,17 @@ struct ContentView: View {
     }
     
     func resetCards() {
-        cards = Array<Card>(repeating: .example, count: 10)
         timeRemaining = 100
         isActive = true
+        loadData()
+    }
+    
+    func loadData() {
+        if let data = UserDefaults.standard.data(forKey: "Cards") {
+            if let decoded = try? JSONDecoder().decode([Card].self, from: data) {
+                cards = decoded
+            }
+        }
     }
 }
 
